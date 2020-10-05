@@ -9,9 +9,20 @@ namespace PromotionEngine
     {
         private readonly List<Item> items = new List<Item>();
         private readonly List<PromotionRule> promotionRules = new List<PromotionRule>();
+        private readonly PairPromotionalRule pairPromotionalRule;
+        private readonly NPromotionalRule nPromotionalRule;
 
+        public PromotionalEngine()
+        {
+            pairPromotionalRule = new PairPromotionalRule();
+            nPromotionalRule = new NPromotionalRule();
+        }
 
-        public int CalcualtePrice()
+        /// <summary>
+        /// Logic to Apply Relevant Promotional Rule.
+        /// </summary>
+        /// <returns></returns>
+        public int CalculatePrice()
         {
             int total = 0;
             var itemGroups = items.GroupBy(g => g.SKU);
@@ -26,36 +37,12 @@ namespace PromotionEngine
                     {
                         if (ruleForGroup.IsTwoSKUInvolved)
                         {
-                            var groupCount1 = items.Where(g => g.SKU == ruleForGroup.SKU).Count();
-                            var groupCount2 = items.Where(g => g.SKU == ruleForGroup.SKU2).Count();
-                            int count = 0;
-
-                            while (groupCount1 > 0 && groupCount2 > 0)
-                            {
-                                count++;
-                                groupCount1--;
-                                groupCount2--;
-                            }
-
-                            total += count * ruleForGroup.Price;
-                            total += groupCount1 * items.Where(x => x.SKU == ruleForGroup.SKU).Select(x => x.Price).FirstOrDefault();
-                            total += groupCount2 * items.Where(x => x.SKU == ruleForGroup.SKU2).Select(x => x.Price).FirstOrDefault();
+                            total = pairPromotionalRule.Calculate(total, items, ruleForGroup);
                             skuProcessed.Add((char)ruleForGroup.SKU2);
                         }
                         else
                         {
-                            var groupCount = itemGroup.Count();
-
-                            var extra = groupCount - ruleForGroup.ItemCount;
-                            if (extra < 0)
-                            {
-                                total += itemGroup.Sum(g => g.Price);
-                            }
-                            else
-                            {
-                                total += (groupCount / ruleForGroup.ItemCount) * ruleForGroup.Price;
-                                total += (groupCount % ruleForGroup.ItemCount) * itemGroup.First().Price;
-                            }
+                            total = nPromotionalRule.Calculate(total,items, ruleForGroup);
                         }
                         skuProcessed.Add(ruleForGroup.SKU);
                     }
@@ -67,13 +54,21 @@ namespace PromotionEngine
 
             }
             return total;
-        }
+        }       
 
+        /// <summary>
+        /// Adding SKU Items
+        /// </summary>
+        /// <param name="item"></param>
         public void AddItem(Item item)
         {
             items.Add(item);
         }
 
+        /// <summary>
+        /// Adding Promotional Rule.
+        /// </summary>
+        /// <param name="rule"></param>
         public void AddPricingRule(PromotionRule rule)
         {
             if (rule == null)

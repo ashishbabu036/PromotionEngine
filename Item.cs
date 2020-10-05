@@ -4,6 +4,10 @@ using System.Text;
 
 namespace PromotionEngine
 {
+ 
+    /// <summary>
+    /// Item Definition
+    /// </summary>
     public class Item
     {
         private char sKU;       
